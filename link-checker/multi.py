@@ -4,7 +4,7 @@ import subprocess
 import re
 import urllib.request
 import urllib.error
-import concurrent.futures
+from multiprocessing import Process
 
 
 class Regex:
@@ -23,7 +23,6 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-
 # find all the adoc files in the repo
 def get_all_master_adoc_files():
     command = ("find . -type f -name 'master.adoc'")
@@ -35,8 +34,8 @@ def get_all_master_adoc_files():
 
 def build_all_master_adoc_files(master_adocs):
     for master in master_adocs:
-        command = 'asciidoctor --safe -v -n {} > /dev/null 2>&1'.format(master_adocs)
-        process = subprocess.run(command, stdout=subprocess.PIPE, shell=True).stdout
+        commands = 'asciidoctor --safe -v -n {} > /dev/null 2>&1'.format(master)
+        processes = [subprocess.Popen(commands, shell=True)]
 
 
 def get_all_master_html_files():
