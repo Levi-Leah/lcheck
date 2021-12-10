@@ -56,7 +56,10 @@ def check_links(links):
             try:
                 response = urllib.request.urlopen(request)
             except urllib.error.HTTPError as e:
-                print(bcolors.FAIL + '\tHTTPError: {}'.format(e.code) + ', ' + link + bcolors.ENDC)
+                if e.code == 429:
+                    pass
+                else:
+                    print(bcolors.FAIL + '\tHTTPError: {}'.format(e.code) + ', ' + link + bcolors.ENDC)
             except urllib.error.URLError as e:
                 print(bcolors.FAIL + '\tURLError: {}'.format(e.reason) + ', ' + link + bcolors.ENDC)
 
@@ -101,16 +104,44 @@ def perform_web_requests(addresses, no_workers):
     return r
 
 
-def smth(master_htmls):
+def uniq(list):
+    last = object()
+    for item in list:
+        if item == last:
+            continue
+        yield item
+        last = item
+
+
+def sort_and_deduplicate(l):
+    return list(uniq(sorted(l, reverse=True)))
+
+def get_links(master_htmls):
     links = []
+    Dict = {}
 
     for master in master_htmls:
-        print(f"Checking {master}")
+        #print(f"Checking {master}")
         with open(master, 'r') as file:
             original = file.read()
             links.append(re.findall(Regex.LINKS_AND_XREFS, original))
 
-    perform_web_requests(links, 20)
+            Dict[master] = links
+
+    return Dict
+
+
+def get_unique_links(links):
+    unique_links = []
+    for link in links:
+        if link.startswith('http'):
+            if link not in unique_links:
+                unique_links.append(link)
+
+    return unique_links
+
+
+#perform_web_requests(links, 20)
 
 
 if __name__ == "__main__":
@@ -123,4 +154,7 @@ if __name__ == "__main__":
 
     print("Gathering links...")
 
-    smth(all_master_html_files)
+    links = get_links(all_master_html_files)
+
+    for key in links:
+        print(key)
