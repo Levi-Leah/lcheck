@@ -41,15 +41,26 @@ def get_links_dict(master_htmls):
     return links_dict
 
 
+def load_request(link):
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    request = urllib.request.Request(link, headers=headers)
+    return request
+
+
+def load_link(req, timeout):
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        return response.read()
+
+
 def check_links(links_dict):
 
     for key in links_dict:
         print(f"Checking {key}")
 
         for link in links_dict[key]:
-            request = urllib.request.Request(link, headers={'User-Agent': 'Mozilla/5.0'})
+            request = load_request(link)
             try:
-                response = urllib.request.urlopen(request)
+                load_link(request, 60)
             except urllib.error.HTTPError as e:
                 if e.code == 429:
                     pass
