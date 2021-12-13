@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-import re
-import subprocess
+
 import re
 import urllib.request
 import urllib.error
+import threading
 import queue
-from threading import Thread
+import concurrent.futures
 
 
 class Regex:
@@ -15,6 +15,7 @@ class Regex:
 class bcolors:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
+    OKGREEN = '\033[92m'
 
 
 htmls = ['/home/levi/rhel-8-docs/rhel-8/titles/configuring-and-maintaining/managing-file-systems/master.html', '/home/levi/rhel-8-docs/rhel-8/titles/configuring-and-maintaining/configuring-and-managing-logical-volumes/master.html', '/home/levi/rhel-8-docs/rhel-8/titles/configuring-and-maintaining/deploying-different-types-of-servers/master.html', '/home/levi/rhel-8-docs/rhel-8/titles/configuring-and-maintaining/configuring-and-managing-networking/master.html', '/home/levi/rhel-8-docs/rhel-8/titles/configuring-and-maintaining/security-hardening/master.html', '/home/levi/rhel-8-docs/rhel-8/titles/configuring-and-maintaining/configuring-rhel-8-for-sap-hana-2-installation/master.html']
@@ -40,13 +41,11 @@ def get_links_dict(master_htmls):
     return links_dict
 
 
-'''for key, value in get_links_dict().items():
-    print(key, ' : ', value)'''
-
-
 def check_links(links_dict):
+
     for key in links_dict:
         print(f"Checking {key}")
+
         for link in links_dict[key]:
             request = urllib.request.Request(link, headers={'User-Agent': 'Mozilla/5.0'})
             try:
@@ -58,7 +57,13 @@ def check_links(links_dict):
                     print(bcolors.FAIL + '\tHTTPError: {}'.format(e.code) + ', ' + link + bcolors.ENDC)
             except urllib.error.URLError as e:
                 print(bcolors.FAIL + '\tURLError: {}'.format(e.reason) + ', ' + link + bcolors.ENDC)
+            else:
+                print(bcolors.OKGREEN + '\tOK: ' + link + bcolors.ENDC)
 
 
-links_dict = get_links_dict(htmls)
-check_links(links_dict)
+def main():
+    links_dict = get_links_dict(htmls)
+    check_links(links_dict)
+
+
+main()
