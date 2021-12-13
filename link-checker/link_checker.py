@@ -4,7 +4,7 @@ import subprocess
 import re
 import urllib.request
 import urllib.error
-import concurrent.futures
+from multiprocessing.pool import ThreadPool
 
 
 class Regex:
@@ -60,12 +60,20 @@ def get_links_dict(master_htmls):
     return links_dict
 
 
-def load_link(link, timeout):
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    request = urllib.request.Request(link, headers=headers)
+def load_link(link):
 
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.read()
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        request = urllib.request.Request(link, headers=headers)
+        response = urllib.request.urlopen(request)
+        return link, response.read(), None, True
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            pass
+        else:
+            return link, None, e.code, 'HTTPError'
+    except urllib.error.URLError as e:
+        return link, None, e.reason, 'URLError'
 
 
 def check_links(links_dict):
@@ -73,19 +81,11 @@ def check_links(links_dict):
     for key in links_dict:
         print(f"Checking {key}")
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_link = {executor.submit(load_link, link, 60): link for link in links_dict[key]}
-            for future in concurrent.futures.as_completed(future_to_link):
-                link = future_to_link[future]
-                try:
-                    data = future.result()
-                except urllib.error.HTTPError as e:
-                    if e.code == 429:
-                        pass
-                    else:
-                        print(bcolors.FAIL + '\tHTTPError: {}'.format(e.code) + ', ' + link + bcolors.ENDC)
-                except urllib.error.URLError as e:
-                    print(bcolors.FAIL + '\tURLError: {}'.format(e.reason) + ', ' + link + bcolors.ENDC)
+        results = ThreadPool(20).imap_unordered(load_link, links_dict[key])
+
+        for link, html, error, msg in results:
+            if error:
+                print(bcolors.FAIL + f'\t{msg}: {error}, {link}' + bcolors.ENDC)
 
 
 def main():
