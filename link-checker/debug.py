@@ -41,14 +41,11 @@ def get_links_dict(master_htmls):
     return links_dict
 
 
-def load_request(link):
+def load_link(link, timeout):
     headers = {'User-Agent': 'Mozilla/5.0'}
     request = urllib.request.Request(link, headers=headers)
-    return request
 
-
-def load_link(req, timeout):
-    with urllib.request.urlopen(req, timeout=timeout) as response:
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         return response.read()
 
 
@@ -57,19 +54,21 @@ def check_links(links_dict):
     for key in links_dict:
         print(f"Checking {key}")
 
-        for link in links_dict[key]:
-            request = load_request(link)
-            try:
-                load_link(request, 60)
-            except urllib.error.HTTPError as e:
-                if e.code == 429:
-                    pass
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_link = {executor.submit(load_link, link, 60): link for link in links_dict[key]}
+            for future in concurrent.futures.as_completed(future_to_link):
+                link = future_to_link[future]
+                try:
+                    data = future.result()
+                except urllib.error.HTTPError as e:
+                    if e.code == 429:
+                        pass
+                    else:
+                        print(bcolors.FAIL + '\tHTTPError: {}'.format(e.code) + ', ' + link + bcolors.ENDC)
+                except urllib.error.URLError as e:
+                    print(bcolors.FAIL + '\tURLError: {}'.format(e.reason) + ', ' + link + bcolors.ENDC)
                 else:
-                    print(bcolors.FAIL + '\tHTTPError: {}'.format(e.code) + ', ' + link + bcolors.ENDC)
-            except urllib.error.URLError as e:
-                print(bcolors.FAIL + '\tURLError: {}'.format(e.reason) + ', ' + link + bcolors.ENDC)
-            else:
-                print(bcolors.OKGREEN + '\tOK: ' + link + bcolors.ENDC)
+                    print(bcolors.OKGREEN + '\tOK: ' + link + bcolors.ENDC)
 
 
 def main():
