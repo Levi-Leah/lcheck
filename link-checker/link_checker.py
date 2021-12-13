@@ -5,10 +5,12 @@ import re
 import urllib.request
 import urllib.error
 from multiprocessing.pool import ThreadPool
+import http.client
 
 
 class Regex:
     LINKS_AND_XREFS = re.compile(r'(?<=<a href=")[^\s]*(?=">)')
+    ATTRIBUTE = re.compile(r'{[^\s]*?}')
 
 
 class bcolors:
@@ -51,6 +53,7 @@ def get_links_dict(master_htmls):
             for m in matches[:]:
                 if not m.startswith('http'):
                     matches.remove(m)
+                # TODO: remove localhost
 
             # remove dublicate entries per master
             matches = list(dict.fromkeys(matches))
@@ -60,12 +63,36 @@ def get_links_dict(master_htmls):
     return links_dict
 
 
+'''def resolve_redirect(link):
+    if re.findall(Regex.ATTRIBUTE, link):
+        return link
+    else:
+        command = ('curl -Ls -o /dev/null -w %{url_effective} ' + '"' + link + '"')
+
+        process = subprocess.run(command, stdout=subprocess.PIPE, shell=True).stdout
+        final_link = ''.join(process.strip().decode('utf-8').split('\n'))
+
+        return final_link'''
+
+
+def resolve_redirect(link):
+    headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3', 'Accept-Encoding': 'none', 'Accept-Language': 'en-US,en;q=0.8', 'Connection': 'keep-alive'}
+    opener = urllib.request.build_opener()
+    link = opener.open(urllib.request.Request(link, headers=headers)).geturl()
+
+    return link
+
+
 def load_link(link):
 
     try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
+        headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3', 'Accept-Encoding': 'none', 'Accept-Language': 'en-US,en;q=0.8', 'Connection': 'keep-alive'}
+
+        link = resolve_redirect(link)
+
         request = urllib.request.Request(link, headers=headers)
         response = urllib.request.urlopen(request)
+
         return link, response.read(), None, True
     except urllib.error.HTTPError as e:
         if e.code == 429:
@@ -74,6 +101,8 @@ def load_link(link):
             return link, None, e.code, 'HTTPError'
     except urllib.error.URLError as e:
         return link, None, e.reason, 'URLError'
+    except http.client.IncompleteRead as e:
+        pass
 
 
 def check_links(links_dict):
