@@ -63,18 +63,6 @@ def get_links_dict(master_htmls):
     return links_dict
 
 
-'''def resolve_redirect(link):
-    if re.findall(Regex.ATTRIBUTE, link):
-        return link
-    else:
-        command = ('curl -Ls -o /dev/null -w %{url_effective} ' + '"' + link + '"')
-
-        process = subprocess.run(command, stdout=subprocess.PIPE, shell=True).stdout
-        final_link = ''.join(process.strip().decode('utf-8').split('\n'))
-
-        return final_link'''
-
-
 def resolve_redirect(link):
     headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3', 'Accept-Encoding': 'none', 'Accept-Language': 'en-US,en;q=0.8', 'Connection': 'keep-alive'}
     opener = urllib.request.build_opener()
