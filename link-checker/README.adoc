@@ -1,0 +1,7 @@
+= lcheck
+
+. From the root of the repository, run:
++
+----
+sh lcheck.sh
+----
