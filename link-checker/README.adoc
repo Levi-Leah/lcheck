@@ -1,7 +1,7 @@
 = lcheck
 
-. From the root of the repository, run:
+. From the root of the docs repository, run:
 +
 ----
-sh lcheck.sh
+sh /PATH/TO/scripts/link-checker/lcheck.sh
 ----
