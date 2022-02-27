@@ -24,7 +24,7 @@ $ lcheck
 
 Troubleshooting::
 If you are getting the `bash: lcheck: command not found...` error, restart your terminal or source your `~/.bashrc` file:
-
++
 ----
 source ~/.bashrc
 ----
