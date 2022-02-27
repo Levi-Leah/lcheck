@@ -43,7 +43,7 @@ lcheck -h
 ----
 $ lcheck -l _<PATH>_
 ----
-Replace _<PATH>_ with an absolute path to the file. Absolute path can be a valid directory or a `master.adoc` file.
+Replace _<PATH>_ with a path to the file. The path can be a valid directory or `master.adoc` file.
 +
 Example::
 To check all `master.adoc` files in the `rhel-8` directory, run:

@@ -3,7 +3,7 @@ FILE="$2"
 
 read -r -d '' OPTIONS << EOM
 OPTIONS\n
--h                         list avaliable commandline options\n
+-h                         list avaliable command-line options\n
 -a <absolute-path>         check unresolved attributes\n
 -l <absolute-path>         check broken links
 EOM
@@ -15,11 +15,6 @@ if  [[ $1 = "-l" ]]; then
     if [[ -z $FILE ]]; then
 
         echo -e "ERROR: No path provided.\n"
-        echo -e $OPTIONS
-
-    elif [ ! "$FILE" != "${FILE#/}" ]; then
-
-        echo -e "ERROR: Relative paths are not supported. Use an absolute path.\n"
         echo -e $OPTIONS
 
     elif [[ -d $FILE ]]; then
@@ -58,11 +53,6 @@ elif [[ $1 = "-a" ]]; then
     if [[ -z $FILE ]]; then
 
         echo -e "ERROR: No path provided.\n"
-        echo -e $OPTIONS
-
-    elif [ ! "$FILE" != "${FILE#/}" ]; then
-
-        echo -e "ERROR: Relative paths are not supported. Use an absolute path.\n"
         echo -e $OPTIONS
 
     elif [[ -d $FILE ]]; then
