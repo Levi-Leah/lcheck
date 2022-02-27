@@ -45,16 +45,29 @@ Replace _<PATH>_ with an absolute path to the file. Absolute path can be a valid
 To check all `master.adoc` files in the `rhel-8` directory, run:
 +
 ----
-$ lcheck rhel-8/
+$ lcheck -l rhel-8/
 ----
 To check a specific `master.adoc`, run:
 +
 ----
-$ lcheck rhel-8/titles/configuring-and-maintaining/configuring-basic-system-settings/master.adoc
+$ lcheck -l rhel-8/titles/configuring-and-maintaining/configuring-basic-system-settings/master.adoc
 ----
 
-* To check unresolved attributes in the whole repository, run the following command at the root of the repository:
+* To check unresolved attributes, run:
 +
 ----
-$ lcheck -a
+$ lcheck _<PATH>_
+----
+Replace _<PATH>_ with an absolute path to the file. Absolute path can be a valid directory or a `master.adoc` file.
++
+.Example
+To check all `master.adoc` files in the `rhel-8` directory, run:
++
+----
+$ lcheck -a rhel-8/
+----
+To check a specific `master.adoc`, run:
++
+----
+$ lcheck -a rhel-8/titles/configuring-and-maintaining/configuring-basic-system-settings/master.adoc
 ----

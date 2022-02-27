@@ -44,7 +44,7 @@ if  [[ $1 = "-l" ]]; then
 
         else
 
-            echo "Not a master.adoc file."
+            echo "ERROR: Not a master.adoc file."
 
         fi
     else
@@ -54,12 +54,46 @@ if  [[ $1 = "-l" ]]; then
     fi
 
 elif [[ $1 = "-a" ]]; then
-    master_adocs=$(find . -type f -name master\*adoc)
-    for i in $master_adocs; do
-        asciidoctor -a attribute-missing=warn --failure-level=WARN $i 2> >(grep -E "missing attribute" && echo -e $i"\n")
-    done
+
+    if [[ -z $FILE ]]; then
+
+        echo -e "ERROR: No path provided.\n"
+        echo -e $OPTIONS
+
+    elif [ ! "$FILE" != "${FILE#/}" ]; then
+
+        echo -e "ERROR: Relative paths are not supported. Use an absolute path.\n"
+        echo -e $OPTIONS
+
+    elif [[ -d $FILE ]]; then
+
+        master_adocs=$(find $FILE -type f -name master\*adoc)
+        for i in $master_adocs; do
+            asciidoctor -a attribute-missing=warn --failure-level=WARN $i 2> >(grep -E "missing attribute" && echo -e 'FILE:' $i"\n")
+        done
+
+    elif [[ -f $FILE ]]; then
+        filename=$(basename "$FILE")
+        if [[ $filename == "master.adoc" ]]; then
+            asciidoctor -a attribute-missing=warn --failure-level=WARN $FILE 2> >(grep -E "missing attribute" && echo -e 'FILE:' $FILE"\n")
+        else
+
+            echo "ERROR: Not a master.adoc file."
+
+        fi
+    else
+
+        echo "ERROR: Provided path does not exist: $FILE"
+
+    fi
+
+
 elif [[ $1 = "-h" ]]; then
+
     echo -e $OPTIONS
+
 else
+
     echo -e $OPTIONS
+
 fi
