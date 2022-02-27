@@ -21,10 +21,10 @@ $ sh install.sh
 ----
 $ lcheck
 ----
-+
-.Troubleshooting
+
+Troubleshooting::
 If you are getting the `bash: lcheck: command not found...` error, restart your terminal or source your `~/.bashrc` file:
-+
+
 ----
 source ~/.bashrc
 ----
@@ -45,7 +45,7 @@ $ lcheck -l _<PATH>_
 ----
 Replace _<PATH>_ with an absolute path to the file. Absolute path can be a valid directory or a `master.adoc` file.
 +
-.Example
+Example::
 To check all `master.adoc` files in the `rhel-8` directory, run:
 +
 ----
@@ -64,7 +64,7 @@ $ lcheck _<PATH>_
 ----
 Replace _<PATH>_ with an absolute path to the file. Absolute path can be a valid directory or a `master.adoc` file.
 +
-.Example
+Example::
 To check all `master.adoc` files in the `rhel-8` directory, run:
 +
 ----
