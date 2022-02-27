@@ -27,19 +27,33 @@ source ~/.bashrc
 
 == Usage
 
-* To see avaliable command line options, run:
+* To see available command-line options, run:
 +
 ----
 lcheck -h
 ----
 
-* To check broken links in the whole repository, run the following command at the root of the repository:
+* To check broken links, run:
++
+[subs=+quotes]
+----
+$ lcheck -l _<PATH>_
+----
+Replace _<PATH>_ with an absolute path to the file. Absolute path can be a valid directory or a `master.adoc` file.
++
+.Example
+To check all `master.adoc` files in the `rhel-8` directory, run:
 +
 ----
-$ lcheck -l
+$ lcheck rhel-8/
+----
+To check a specific `master.adoc`, run:
++
+----
+$ lcheck rhel-8/titles/configuring-and-maintaining/configuring-basic-system-settings/master.adoc
 ----
 
-* . To check unresolved attributes in the whole repository, run the following command at the root of the repository:
+* To check unresolved attributes in the whole repository, run the following command at the root of the repository:
 +
 ----
 $ lcheck -a
