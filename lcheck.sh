@@ -4,8 +4,8 @@ FILE="$2"
 read -r -d '' OPTIONS << EOM
 OPTIONS\n
 -h                         list avaliable command-line options\n
--a <absolute-path>         check unresolved attributes\n
--l <absolute-path>         check broken links
+-a <path>                  check unresolved attributes\n
+-l <path>                  check broken links
 EOM
 
 if  [[ $1 = "-l" ]]; then
