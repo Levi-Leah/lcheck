@@ -1,0 +1,77 @@
+= lcheck
+
+`lcheck` is a command-line tool that allows you to check for broken URLs and unresolved attributes.
+
+== Installation
+
+. Clone the repository.
+. Navigate to the `lcheck` directory:
++
+----
+$ cd lcheck
+----
+. Run the `install.sh` script:
++
+----
+$ sh install.sh
+----
+
+. Run `lcheck` command to check if installation was successful:
++
+----
+$ lcheck
+----
+
+Troubleshooting::
+If you are getting the `bash: lcheck: command not found...` error, restart your terminal or source your `~/.bashrc` file:
++
+----
+source ~/.bashrc
+----
+
+== Usage
+
+* To see available command-line options, run:
++
+----
+lcheck -h
+----
+
+* To check broken links, run:
++
+[subs=+quotes]
+----
+$ lcheck -l _<PATH>_
+----
+Replace _<PATH>_ with a path to the file. The path can be a valid directory or `master.adoc` file.
++
+Example::
+To check all `master.adoc` files in the `rhel-8` directory, run:
++
+----
+$ lcheck -l rhel-8/
+----
+To check a specific `master.adoc`, run:
++
+----
+$ lcheck -l rhel-8/titles/configuring-and-maintaining/configuring-basic-system-settings/master.adoc
+----
+
+* To check unresolved attributes, run:
++
+----
+$ lcheck _<PATH>_
+----
+Replace _<PATH>_ with an absolute path to the file. Absolute path can be a valid directory or a `master.adoc` file.
++
+Example::
+To check all `master.adoc` files in the `rhel-8` directory, run:
++
+----
+$ lcheck -a rhel-8/
+----
+To check a specific `master.adoc`, run:
++
+----
+$ lcheck -a rhel-8/titles/configuring-and-maintaining/configuring-basic-system-settings/master.adoc
+----

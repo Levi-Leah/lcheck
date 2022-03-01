@@ -1,9 +1,0 @@
-= lcheck
-
-Prerequisite: install the linkchecker package
-
-. From the root of the docs repository, run:
-+
-----
-sh /PATH/TO/scripts/link-checker/lcheck.sh
-----
