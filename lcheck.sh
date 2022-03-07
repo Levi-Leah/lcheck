@@ -10,7 +10,7 @@ EOM
 
 if  [[ $1 = "-l" ]]; then
 
-    path_to_script="$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)"
+    path_to_script="$(realpath $(dirname "$0"))"
 
     if [[ -z $FILE ]]; then
 

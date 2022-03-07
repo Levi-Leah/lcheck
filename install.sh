@@ -1,6 +1,6 @@
 #!/bin/bash
 
-path_to_script="$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)"
+path_to_script="$(realpath $(dirname "$0"))"
 lcheck=$path_to_script'/lcheck.sh'
 dependencies="linkchecker asciidoctor"
 
@@ -14,9 +14,7 @@ done
 
 if [ "grep lcheck.sh ~/.bashrc" ]; then
     sed -i "\|lcheck.sh|d" ~/.bashrc
-    echo 'alias lcheck="'$lcheck'"' >> ~/.bashrc
-    source ~/.bashrc
-else
-    echo 'alias lcheck="'$lcheck'"' >> ~/.bashrc
-    source ~/.bashrc
 fi
+
+echo 'alias lcheck="'$lcheck'"' >> ~/.bashrc
+source ~/.bashrc
