@@ -12,9 +12,7 @@ for i in $dependencies; do
     fi
 done
 
-if [ "$(grep lcheck.sh ~/.bashrc)" ]; then
-    sed -i "\|lcheck.sh|d" ~/.bashrc
-fi
+sed -i "\|lcheck\.sh|d" ~/.bashrc
 
 echo 'alias lcheck="'$lcheck'"' >> ~/.bashrc
 source ~/.bashrc
