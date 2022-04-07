@@ -14,10 +14,33 @@ if [ -z "$*" ]; then
     echo -e "No arguments provided.\n"
     echo -e $OPTIONS
     exit 1
-elif [[ ! -z $1 ]] && [[ $1 != "-h" ]] && [[ -z $2 ]]; then
-    echo -e "No path provided.\n"
-    echo -e $OPTIONS
-    exit 1
+fi
+
+if ! ( [ $1 = "-h" ] || [ $1 = "-c" ] ); then
+    if [[ -z $2 ]]; then
+        echo -e 'No path provided.\n'
+        echo -e $OPTIONS
+        exit 1
+    elif ! ( [ -d $2 ] || [ -f $2 ] ); then
+        echo -e "Provided path does not exist: $2"
+        exit 1
+    fi
+elif [[ $1 = "-c" ]]; then
+    if [[ -z $2 ]]; then
+        echo -e 'No variant provided.\n'
+        echo -e $OPTIONS
+        exit 1
+    elif [[ ! $2 =~ [0-9] ]]; then
+        echo -e "Provided variant is not a valid version number: $2"
+        exit 1
+    elif [[ -z $3 ]]; then
+        echo -e 'No path provided.\n'
+        echo -e $OPTIONS
+        exit 1
+    elif ! ( [ -d $3 ] || [ -f $3 ] ); then
+        echo -e "Provided path does not exist: $3"
+        exit 1
+    fi
 fi
 
 if  [[ $1 = "-l" ]]; then
@@ -49,10 +72,6 @@ if  [[ $1 = "-l" ]]; then
             echo "ERROR: Not a master.adoc file."
 
         fi
-    else
-
-        echo "ERROR: Provided path is not valid: $PASSED"
-
     fi
 
 elif [[ $1 = "-a" ]]; then
@@ -73,10 +92,6 @@ elif [[ $1 = "-a" ]]; then
             echo "ERROR: Not a master.adoc file."
 
         fi
-    else
-
-        echo "ERROR: Provided path does not exist: $PASSED"
-
     fi
 
 
@@ -92,27 +107,17 @@ elif [[ $1 = '-r' ]]; then
 
 elif [[ $1 = '-c' ]]; then
 
-    num='^[0-9]+$'
-    if [[ $2 =~ num ]] & [[ -d $3 ]]; then
+    echo "Collecting master.adoc files."
+    master_adocs=$(find $3 -type f -name master\*adoc)
 
+    echo "Building master.adoc files."
+    for i in $master_adocs; do asciidoctor --safe -v -n $i >/dev/null 2>&1; done
 
-        echo "Collecting master.adoc files."
-        master_adocs=$(find $3 -type f -name master\*adoc)
+    echo "Collecting master.adoc files."
+    master_htmls=$(find $3 -type f -name master\*html)
 
-        echo "Building master.adoc files."
-        for i in $master_adocs; do asciidoctor --safe -v -n $i >/dev/null 2>&1; done
+    echo -e "\nChecking URLs."
 
-        echo "Collecting master.adoc files."
-        master_htmls=$(find $3 -type f -name master\*html)
-
-        echo -e "\nChecking URLs."
-
-        for i in $master_htmls; do grep -HnPo '(?<=<a href=")[^\s]*(?=")' $i | grep -v '^#' | grep "red_hat_enterprise_linux\/[0-9]" | grep -v "red_hat_enterprise_linux\/$2" | awk -F: '{print "\nFile:\t\t"$1 "\nLine number:\t"$2 "\nMatching URL:\t"$3$4}'; done
-
-    fi
-
-else
-
-    echo -e $OPTIONS
+    for i in $master_htmls; do grep -HnPo '(?<=<a href=")[^\s]*(?=")' $i | grep -v '^#' | grep "red_hat_enterprise_linux\/[0-9]" | grep -v "red_hat_enterprise_linux\/$2" | awk -F: '{print "\nFile:\t\t"$1 "\nLine number:\t"$2 "\nMatching URL:\t"$3$4}'; done
 
 fi
