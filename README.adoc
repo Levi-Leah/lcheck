@@ -37,7 +37,7 @@ source ~/.bashrc
 lcheck -h
 ----
 
-* To check broken links, run:
+* To for check broken links, run:
 +
 [subs=+quotes]
 ----
@@ -63,7 +63,7 @@ $ lcheck -l rhel-8/titles/configuring-and-maintaining/configuring-basic-system-s
 ----
 $ lcheck -a _<PATH>_
 ----
-Replace _<PATH>_ with an absolute path to the file. Absolute path can be a valid directory or a `master.adoc` file.
+Replace _<PATH>_ with a path to the `master.adoc` file or directory.
 +
 Example::
 To check all `master.adoc` files in the `rhel-8` directory, run:
@@ -83,7 +83,7 @@ $ lcheck -a rhel-8/titles/configuring-and-maintaining/configuring-basic-system-s
 ----
 $ lcheck -c _<VERSION>_ _<PATH>_
 ----
-Replace _<VERSION>_ with the correct version number.  Replace _<PATH>_ with an absolute path to the file. Absolute path can be a valid directory or a `master.adoc` file.
+Replace _<VERSION>_ with the correct version number.  Replace _<PATH>_ with a path to the `master.adoc` file or directory.
 +
 Example::
 To check if all `master.adoc` files in the `rhel-8` directory have `red_hat_enterprise_linux/8` in the link pattern, run:
@@ -96,3 +96,11 @@ To check a specific `master.adoc`, run:
 ----
 $ lcheck -c 8 rhel-8/titles/configuring-and-maintaining/configuring-basic-system-settings/master.adoc
 ----
+
+* To remove the `master.html` files left after the build process, run:
++
+[subs=+quotes]
+----
+$ lcheck -r _<PATH>_
+----
+Replace _<PATH>_ with a path to the `master.adoc` file or directory.

@@ -101,9 +101,19 @@ elif [[ $1 = "-h" ]]; then
 
 elif [[ $1 = '-r' ]]; then
 
-    echo -e "Removing master.html files from $PASSED directory recursively.\n"
-    master_htmls=$(find $PASSED -type f -name master\*html)
-    rm -v $master_htmls
+    if [[ -d $PASSED ]]; then
+
+        echo -e "Removing master.html files from $PASSED directory recursively.\n"
+        master_htmls=$(find $PASSED -type f -name master\*html)
+        rm -v $master_htmls
+    elif [[ -f $PASSED ]]; then
+        if [[ $PASSED == *.html ]]; then
+            rm -v $PASSED
+        else
+            echo "Not an html file: $PASSED"
+            exit 1
+        fi
+    fi
 
 elif [[ $1 = '-c' ]]; then
 
