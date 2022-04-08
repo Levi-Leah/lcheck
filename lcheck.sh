@@ -1,5 +1,4 @@
 #!/bin/bash
-PASSED="$2"
 
 read -r -d '' OPTIONS << EOM
 OPTIONS\n
@@ -45,29 +44,28 @@ if  [[ $1 = "-l" ]]; then
 
     path_to_script="$(realpath $(dirname "$0"))"
 
-    if [[ -d $PASSED ]]; then
+    if [[ -d $2 ]]; then
 
         echo "Collecting master.adoc files."
-        master_adocs=$(find $PASSED -type f -name master\*adoc)
+        master_adocs=$(find $2 -type f -name master\*adoc)
 
         echo "Building master.adoc files."
         for i in $master_adocs; do asciidoctor --safe -v -n $i >/dev/null 2>&1; done
 
         echo "Checking links."
-        find $PASSED -type f -name master\*html | xargs linkchecker -r1 -f $path_to_script/lcheck.ini --check-extern 2>/dev/null | grep -Ev "^Check time|^Size.*"
+        find $2 -type f -name master\*html | xargs linkchecker -r1 -f $path_to_script/lcheck.ini --check-extern 2>/dev/null | grep -Ev "^Check time|^Size.*"
 
-    elif [[ -f $PASSED ]]; then
-        filename=$(basename "$PASSED")
-        if [[ $filename == "master.adoc" ]]; then
+    elif [[ -f $2 ]]; then
+        if [[ $2 == *master.adoc ]]; then
 
-            asciidoctor --safe -v -n $PASSED >/dev/null 2>&1
-            cut_adoc_extension=$(echo $PASSED | cut -f 1 -d '.')
+            asciidoctor --safe -v -n $2 >/dev/null 2>&1
+            cut_adoc_extension=$(echo $2 | cut -f 1 -d '.')
             html_file="$cut_adoc_extension.html"
             linkchecker -r1 -f $path_to_script/lcheck.ini --check-extern $html_file 2>/dev/null | grep -Ev "^Check time|^Size.*"
 
         else
 
-            echo "ERROR: Not a master.adoc file."
+            echo "Not a master.adoc file: $2"
             exit 1
 
         fi
@@ -75,20 +73,19 @@ if  [[ $1 = "-l" ]]; then
 
 elif [[ $1 = "-a" ]]; then
 
-    if [[ -d $PASSED ]]; then
+    if [[ -d $2 ]]; then
 
-        master_adocs=$(find $PASSED -type f -name master\*adoc)
+        master_adocs=$(find $2 -type f -name master\*adoc)
         for i in $master_adocs; do
-            asciidoctor -a attribute-missing=warn --failure-level=WARN $i 2> >(grep -E "missing attribute" && echo -e 'PASSED:' $i"\n")
+            asciidoctor -a attribute-missing=warn --failure-level=WARN $i 2> >(grep -E "missing attribute" && echo -e '2:' $i"\n")
         done
 
-    elif [[ -f $PASSED ]]; then
-        filename=$(basename "$PASSED")
-        if [[ $filename == "master.adoc" ]]; then
-            asciidoctor -a attribute-missing=warn --failure-level=WARN $PASSED 2> >(grep -E "missing attribute" && echo -e 'PASSED:' $PASSED"\n")
+    elif [[ -f $2 ]]; then
+        if [[ $2 == *master.adoc ]]; then
+            asciidoctor -a attribute-missing=warn --failure-level=WARN $2 2> >(grep -E "missing attribute" && echo -e '2:' $2"\n")
         else
 
-            echo "ERROR: Not a master.adoc file."
+            echo "Not a master.adoc file: $2"
             exit 1
 
         fi
@@ -101,16 +98,16 @@ elif [[ $1 = "-h" ]]; then
 
 elif [[ $1 = '-r' ]]; then
 
-    if [[ -d $PASSED ]]; then
+    if [[ -d $2 ]]; then
 
-        echo -e "Removing master.html files from $PASSED directory recursively.\n"
-        master_htmls=$(find $PASSED -type f -name master\*html)
+        echo -e "Removing master.html files from $2 directory recursively.\n"
+        master_htmls=$(find $2 -type f -name master\*html)
         rm -v $master_htmls
-    elif [[ -f $PASSED ]]; then
-        if [[ $PASSED == *.html ]]; then
-            rm -v $PASSED
+    elif [[ -f $2 ]]; then
+        if [[ $2 == *.html ]]; then
+            rm -v $2
         else
-            echo "Not an html file: $PASSED"
+            echo "Not an html file: $2"
             exit 1
         fi
     fi
@@ -134,8 +131,7 @@ elif [[ $1 = '-c' ]]; then
 
     elif [[ -f $3 ]]; then
 
-        filename=$(basename "$3")
-        if [[ $filename == "master.adoc" ]]; then
+        if [[ $3 == *master.adoc ]]; then
             echo "Building master.adoc files."
             asciidoctor --safe -v -n $3 >/dev/null 2>&1
 
@@ -147,7 +143,7 @@ elif [[ $1 = '-c' ]]; then
             grep -HnPo '(?<=<a href=")[^\s]*(?=")' $html_file | grep -v '^#' | grep "red_hat_enterprise_linux\/[0-9]" | grep -v "red_hat_enterprise_linux\/$2" | awk -F: '{print "\nFile:\t\t"$1 "\nLine number:\t"$2 "\nMatching URL:\t"$3$4}'
         else
 
-            echo "ERROR: Not a master.adoc file."
+            echo "Not a master.adoc file: $3"
             exit 1
 
         fi
