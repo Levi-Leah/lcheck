@@ -14,9 +14,7 @@ if [ -z "$*" ]; then
     echo -e "No arguments provided.\n"
     echo -e $OPTIONS
     exit 1
-fi
-
-if ! ( [ $1 = "-h" ] || [ $1 = "-c" ] ); then
+elif ! ( [ $1 = "-h" ] || [ $1 = "-c" ] ); then
     if [[ -z $2 ]]; then
         echo -e 'No path provided.\n'
         echo -e $OPTIONS
@@ -70,6 +68,7 @@ if  [[ $1 = "-l" ]]; then
         else
 
             echo "ERROR: Not a master.adoc file."
+            exit 1
 
         fi
     fi
@@ -90,6 +89,7 @@ elif [[ $1 = "-a" ]]; then
         else
 
             echo "ERROR: Not a master.adoc file."
+            exit 1
 
         fi
     fi
@@ -107,17 +107,41 @@ elif [[ $1 = '-r' ]]; then
 
 elif [[ $1 = '-c' ]]; then
 
-    echo "Collecting master.adoc files."
-    master_adocs=$(find $3 -type f -name master\*adoc)
+    if [[ -d $3 ]]; then
 
-    echo "Building master.adoc files."
-    for i in $master_adocs; do asciidoctor --safe -v -n $i >/dev/null 2>&1; done
+        echo "Collecting master.adoc files."
+        master_adocs=$(find $3 -type f -name master\*adoc)
 
-    echo "Collecting master.adoc files."
-    master_htmls=$(find $3 -type f -name master\*html)
+        echo "Building master.adoc files."
+        for i in $master_adocs; do asciidoctor --safe -v -n $i >/dev/null 2>&1; done
 
-    echo -e "\nChecking URLs."
+        echo "Collecting master.adoc files."
+        master_htmls=$(find $3 -type f -name master\*html)
 
-    for i in $master_htmls; do grep -HnPo '(?<=<a href=")[^\s]*(?=")' $i | grep -v '^#' | grep "red_hat_enterprise_linux\/[0-9]" | grep -v "red_hat_enterprise_linux\/$2" | awk -F: '{print "\nFile:\t\t"$1 "\nLine number:\t"$2 "\nMatching URL:\t"$3$4}'; done
+        echo -e "\nChecking URLs."
+
+        for i in $master_htmls; do grep -HnPo '(?<=<a href=")[^\s]*(?=")' $i | grep -v '^#' | grep "red_hat_enterprise_linux\/[0-9]" | grep -v "red_hat_enterprise_linux\/$2" | awk -F: '{print "\nFile:\t\t"$1 "\nLine number:\t"$2 "\nMatching URL:\t"$3$4}'; done
+
+    elif [[ -f $3 ]]; then
+
+        filename=$(basename "$3")
+        if [[ $filename == "master.adoc" ]]; then
+            echo "Building master.adoc files."
+            asciidoctor --safe -v -n $3 >/dev/null 2>&1
+
+            cut_adoc_extension=$(echo $3 | cut -f 1 -d '.')
+            html_file="$cut_adoc_extension.html"
+
+            echo -e "\nChecking URLs."
+
+            grep -HnPo '(?<=<a href=")[^\s]*(?=")' $html_file | grep -v '^#' | grep "red_hat_enterprise_linux\/[0-9]" | grep -v "red_hat_enterprise_linux\/$2" | awk -F: '{print "\nFile:\t\t"$1 "\nLine number:\t"$2 "\nMatching URL:\t"$3$4}'
+        else
+
+            echo "ERROR: Not a master.adoc file."
+            exit 1
+
+        fi
+
+    fi
 
 fi

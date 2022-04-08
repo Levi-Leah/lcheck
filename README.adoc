@@ -57,10 +57,11 @@ To check a specific `master.adoc`, run:
 $ lcheck -l rhel-8/titles/configuring-and-maintaining/configuring-basic-system-settings/master.adoc
 ----
 
-* To check unresolved attributes, run:
+* To check for unresolved attributes, run:
 +
+[subs=+quotes]
 ----
-$ lcheck _<PATH>_
+$ lcheck -a _<PATH>_
 ----
 Replace _<PATH>_ with an absolute path to the file. Absolute path can be a valid directory or a `master.adoc` file.
 +
@@ -74,4 +75,24 @@ To check a specific `master.adoc`, run:
 +
 ----
 $ lcheck -a rhel-8/titles/configuring-and-maintaining/configuring-basic-system-settings/master.adoc
+----
+
+* To check if your document contains links to the wrong RHEL version, run:
++
+[subs=+quotes]
+----
+$ lcheck -c _<VERSION>_ _<PATH>_
+----
+Replace _<VERSION>_ with the correct version number.  Replace _<PATH>_ with an absolute path to the file. Absolute path can be a valid directory or a `master.adoc` file.
++
+Example::
+To check if all `master.adoc` files in the `rhel-8` directory have `red_hat_enterprise_linux/8` in the link pattern, run:
++
+----
+$ lcheck -c 8 rhel-8/
+----
+To check a specific `master.adoc`, run:
++
+----
+$ lcheck -c 8 rhel-8/titles/configuring-and-maintaining/configuring-basic-system-settings/master.adoc
 ----
