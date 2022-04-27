@@ -115,6 +115,7 @@ elif [[ $1 = '-r' ]]; then
 elif [[ $1 = '-c' ]]; then
 
     if [[ -d $3 ]]; then
+        start=`date +%s`
 
         echo "Collecting master.adoc files."
         master_adocs=$(find $3 -type f -name master\*adoc)
@@ -125,11 +126,23 @@ elif [[ $1 = '-c' ]]; then
         echo "Collecting master.adoc files."
         master_htmls=$(find $3 -type f -name master\*html)
 
-        echo -e "\nChecking URLs."
+        echo -e "\nChecking if links in '$3' directory contain only 'red_hat_enterprise_linux/$2' URL pattern."
 
-        for i in $master_htmls; do grep -HnPo '(?<=<a href=")[^\s]*(?=")' $i | grep -v '^#' | grep "red_hat_enterprise_linux\/[0-9]" | grep -v "red_hat_enterprise_linux\/$2" | awk -F: '{print "\nFile:\t\t"$1 "\nLine number:\t"$2 "\nMatching URL:\t"$3$4}'; done
+        all_rhel_urls=$(for i in $master_htmls; do grep -HnPo '(?<=<a href=")[^\s]*(?=")' $i | grep -v '^#' | grep "red_hat_enterprise_linux\/[0-9]"; done)
+        total_count=$(echo $all_rhel_urls | wc -w)
+
+        missmathed_urls=$(echo "$all_rhel_urls" | grep -v "red_hat_enterprise_linux\/$2")
+        errors_count=$(echo $missmathed_urls | wc -w)
+
+        awk -F: '{print "\nFile:\t\t"$1 "\nLine number:\t"$2 "\nMatching URL:\t"$3$4}' <<< $missmathed_urls
+
+        end=`date +%s`
+        runtime=$((end-start))
+
+        echo -e "\nStatistics:\nThat's it. $total_count URLs checked. $errors_count errors found.\nStopped checking at $(date '+%F %T') ($runtime seconds)"
 
     elif [[ -f $3 ]]; then
+        start=`date +%s`
 
         if [[ $3 == *master.adoc ]]; then
             echo "Building master.adoc files."
@@ -138,9 +151,21 @@ elif [[ $1 = '-c' ]]; then
             cut_adoc_extension=$(echo $3 | cut -f 1 -d '.')
             html_file="$cut_adoc_extension.html"
 
-            echo -e "\nChecking URLs."
+            echo -e "\nChecking if links in '$3' file contain only 'red_hat_enterprise_linux/$2' URL pattern."
 
-            grep -HnPo '(?<=<a href=")[^\s]*(?=")' $html_file | grep -v '^#' | grep "red_hat_enterprise_linux\/[0-9]" | grep -v "red_hat_enterprise_linux\/$2" | awk -F: '{print "\nFile:\t\t"$1 "\nLine number:\t"$2 "\nMatching URL:\t"$3$4}'
+            all_rhel_urls=$(grep -HnPo '(?<=<a href=")[^\s]*(?=")' $html_file | grep -v '^#' | grep "red_hat_enterprise_linux\/[0-9]")
+            total_count=$(echo $all_rhel_urls | wc -w)
+
+            missmathed_urls=$(echo "$all_rhel_urls" | grep -v "red_hat_enterprise_linux\/$2")
+            errors_count=$(echo $missmathed_urls | wc -w)
+
+            awk -F: '{print "\nFile:\t\t"$1 "\nLine number:\t"$2 "\nMatching URL:\t"$3$4}' <<< $missmathed_urls
+
+            end=`date +%s`
+            runtime=$((end-start))
+
+            echo -e "\nStatistics:\nThat's it. $total_count URLs checked. $errors_count errors found.\nStopped checking at $(date '+%F %T') ($runtime seconds)"
+
         else
 
             echo "Not a master.adoc file: $3"
