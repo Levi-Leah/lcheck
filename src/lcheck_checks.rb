@@ -2,11 +2,23 @@
 
 require 'find'
 
-input_files = ['/home/levi/rhel-8-docs/']
-pattern = ".*master\.adoc$"
+
+# suppress AsiiDoctor output
+# from https://gist.github.com/moertel/11091573
+def suppress_output
+  original_stderr = $stderr.clone
+  original_stdout = $stdout.clone
+  $stderr.reopen(File.new('/dev/null', 'w'))
+  $stdout.reopen(File.new('/dev/null', 'w'))
+  yield
+ensure
+  $stdout.reopen(original_stdout)
+  $stderr.reopen(original_stderr)
+end
+
 
 # sort arguments
-def method_name(input_files, pattern)
+def return_expanded_files(input_files, pattern)
     accepted_extension = [".adoc"]
     expanded_files = []
 
@@ -36,5 +48,34 @@ def method_name(input_files, pattern)
 end
 
 
-c = method_name(input_files, pattern)
-puts c.inspect
+def return_hyperlinks_dict(expanded_files)
+
+    hyperlinks_dict = {}
+    files_checked = []
+
+    suppress_output {
+        expanded_files.each do |file|
+            doc = Asciidoctor.convert_file file, safe: :safe, catalog_assets: true, sourcemap: true
+
+            doc.find_by(context: :literal).each do |l|
+                unless files_checked.include?(l.file)
+                    files_checked << l.file
+                end
+                # if script is running on files with unresolved conditionals
+                # it might resilt in literal blocks with no content
+                # hence next
+                if l.content.nil?
+                    next
+                end
+                if l.content.match('<a href=')
+                    if hyperlinks_dict.key?(l.file)
+                        hyperlinks_dict[l.file] += [l.lineno]
+                    else
+                        hyperlinks_dict[l.file] = [l.lineno]
+                    end
+                end
+            end
+        end
+    }
+    return hyperlinks_dict, files_checked
+end

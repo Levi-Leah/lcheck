@@ -5,6 +5,8 @@ require 'asciidoctor'
 require 'colorize'
 require 'find'
 
+require_relative 'lcheck_checks'
+
 # TODO exit codes
 
 ARGV << '-h' if ARGV.empty?
@@ -72,94 +74,28 @@ end
 
 
 # check if dependent option is used w/o a standalone option
+# determine the pattern to search for
 if options[:m] == true
     abort "#{msg}" unless options.except(:m).values.any?(true)
-end
-
-
-# suppress AsiiDoctor output
-# from https://gist.github.com/moertel/11091573
-def suppress_output
-  original_stderr = $stderr.clone
-  original_stdout = $stdout.clone
-  $stderr.reopen(File.new('/dev/null', 'w'))
-  $stdout.reopen(File.new('/dev/null', 'w'))
-  yield
-ensure
-  $stdout.reopen(original_stdout)
-  $stderr.reopen(original_stderr)
-end
-
-
-accepted_extension = [".adoc"]
-input_files = []
-
-
-# TODO absolute paths so it doesn't loop through symlinks?
-# TODO output in relative paths
-# determine the pattern to search for
-if options[:m]
     pattern = ".*master\.adoc$"
 else
     pattern = ".*\.adoc$"
 end
 
 
+# TODO absolute paths so it doesn't loop through symlinks?
+# TODO output in relative paths
+
+
 # sort arguments
-ARGV.each do |arg|
-    abort "#{File.basename( ($0), ".*" )}: Provided path does not exist: '#{arg}'" if not File.exist?(arg)
-    if File.directory?(arg)
-        Find.find(arg) do |path|
-            unless input_files.include?(path)
-                input_files << path if path =~ /#{pattern}/
-            end
-        end
-
-    elsif File.file?(arg)
-        if not accepted_extension.include? File.extname(arg)
-            puts "#{File.basename( ($0), ".*" )}: invalid file extension: #{arg}"
-            puts "Accepted file extensions: #{accepted_extension}"
-            exit 1
-        end
-        unless input_files.include?(arg)
-            input_files << arg
-        end
-    end
-end
-
+expanded_files = return_expanded_files(ARGV, pattern)
 
 # check for hyperlinks in literal blocks
 # if only master.adocs are checked the output is individual .adoc files containing the match
 if options[:s]
     puts "\nChecking #{ARGV} for hyperlinks in literal blocks."
 
-    hyperlinks_dict = {}
-    files_checked = []
-
-    suppress_output {
-        input_files.each do |file|
-            doc = Asciidoctor.convert_file file, safe: :safe, catalog_assets: true, sourcemap: true
-
-            doc.find_by(context: :literal).each do |l|
-                unless files_checked.include?(l.file)
-                    files_checked << l.file
-                end
-                # if script is running on files with unresolved conditionals
-                # it might resilt in literal blocks with no content
-                # hence next
-                if l.content.nil?
-                    next
-                end
-                if l.content.match('<a href=')
-                    if hyperlinks_dict.key?(l.file)
-                        hyperlinks_dict[l.file] += [l.lineno]
-                    else
-                        hyperlinks_dict[l.file] = [l.lineno]
-                    end
-                end
-            end
-        end
-    }
+    hyperlinks_dict, files_checked = return_hyperlinks_dict(expanded_files)
 
     if hyperlinks_dict
         hyperlinks_dict.each do|key,value|
@@ -168,12 +104,12 @@ if options[:s]
         end
 
         puts "\nStatistics:"
-        puts "Input files: #{input_files.size}. Files checked: #{files_checked.size}. Errors found: #{hyperlinks_dict.size}."
+        puts "Input files: #{expanded_files.size}. Errors found: #{hyperlinks_dict.size}. Files checked: #{files_checked.size}."
         exit 1
     end
 end
 
-
+'''
 if options[:a]
     puts "\nChecking #{ARGV} for unresolved attributes."
 
@@ -183,7 +119,7 @@ if options[:a]
 
     suppress_output {
 
-        input_files.each do |file|
+        expanded_files.each do |file|
             doc = Asciidoctor.convert_file file, safe: :safe, catalog_assets: true, sourcemap: true
             doc.find_by(context: :paragraph).each do |a|
                 unless files_checked.include?(a.file)
@@ -215,8 +151,9 @@ if options[:a]
         end
 
         puts "\nStatistics:"
-        puts "Input files: #{input_files.size}. Files checked: #{files_checked.size}. Errors found: #{attributes_dict.size}."
+        puts "Input files: #{expanded_files.size}. Files checked: #{files_checked.size}. Errors found: #{attributes_dict.size}."
         exit 1
     end
 
 end
+'''
