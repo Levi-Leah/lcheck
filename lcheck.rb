@@ -16,7 +16,7 @@ opt = OptionParser.new do |opts|
     opts.separator ""
     opts.separator "   Standalone options:".bold
 
-    opts.on("-h", "--help", "Show this message") do
+    opts.on("-h", "--help", "Prints help message.") do
         puts opts
         exit 0
     end
