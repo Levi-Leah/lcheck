@@ -6,7 +6,7 @@ require 'colorize'
 require 'find'
 
 ARGV << '-h' if ARGV.empty?
-msg = "This option must be used with one of the Standalone options: " + "-s".underline
+msg = "-m option must be used with one of the Standalone options: " + "-s".underline
 
  options = {}
 # configuring the option parser
@@ -110,7 +110,7 @@ end
 # check for hyperlinks in literal blocks
 # if only master.adocs are checked the output is individual .adoc files containing the match
 if options[:s]
-    puts "Checking #{ARGV} for hyperlinks in literal blocks."
+    puts "\nChecking #{ARGV} for hyperlinks in literal blocks."
 
     hyperlinks_dict = {}
 
@@ -125,7 +125,7 @@ if options[:s]
                 if l.content.nil?
                     next
                 end
-                if l.content.match('href')
+                if l.content.match('<a href=')
                     if hyperlinks_dict.key?(l.file)
                         hyperlinks_dict[l.file] += [l.lineno]
                     else
@@ -141,4 +141,7 @@ if options[:s]
     puts "\nFile:\t\t\t#{key}"
     puts"Start of the block:\t#{value}"
     end
+
+    puts "\nStatistics:"
+    puts "Input files checked: #{input_files.size}. Errors found: #{hyperlinks_dict.size}."
 end
