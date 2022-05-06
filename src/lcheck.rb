@@ -8,6 +8,8 @@ require 'find'
 require_relative 'lcheck_checks'
 
 # TODO exit codes
+# TODO absolute paths so it doesn't loop through symlinks?
+# TODO output in relative paths
 
 ARGV << '-h' if ARGV.empty?
 msg = "-m option must be used with one of the Standalone options: " + "-s, -a"
@@ -83,77 +85,22 @@ else
 end
 
 
-# TODO absolute paths so it doesn't loop through symlinks?
-# TODO output in relative paths
-
-
 # sort arguments
-expanded_files = return_expanded_files(ARGV, pattern)
+return_expanded_files(ARGV, pattern)
+
 
 # check for hyperlinks in literal blocks
 # if only master.adocs are checked the output is individual .adoc files containing the match
 if options[:s]
     puts "\nChecking #{ARGV} for hyperlinks in literal blocks."
 
-    hyperlinks_dict, files_checked = return_hyperlinks_dict(expanded_files)
-
-    if hyperlinks_dict
-        hyperlinks_dict.each do|key,value|
-            puts "\nFile:\t\t\t#{key}"
-            puts"Start of the block:\t#{value}"
-        end
-
-        puts "\nStatistics:"
-        puts "Input files: #{expanded_files.size}. Errors found: #{hyperlinks_dict.size}. Files checked: #{files_checked.size}."
-        exit 1
-    end
+    get_hyperlink_errors()
 end
 
-'''
+
 if options[:a]
     puts "\nChecking #{ARGV} for unresolved attributes."
 
-    attributes_dict = {}
-    files_checked = []
-    matches = []
-
-    suppress_output {
-
-        expanded_files.each do |file|
-            doc = Asciidoctor.convert_file file, safe: :safe, catalog_assets: true, sourcemap: true
-            doc.find_by(context: :paragraph).each do |a|
-                unless files_checked.include?(a.file)
-                    files_checked << a.file
-                end
-
-                unresolved_attribute = a.content.scan(/(?!{}){[^\s]*}/)
-
-                if unresolved_attribute
-                    if attributes_dict.key?(a.file)
-                        unless unresolved_attribute.empty?
-                            attributes_dict[a.file] += [unresolved_attribute]
-                        end
-                    else
-                        unless unresolved_attribute.empty?
-                            attributes_dict[a.file] = [unresolved_attribute]
-                        end
-                    end
-                end
-            end
-        end
-
-    }
-
-    if attributes_dict
-        attributes_dict.each do|key,value|
-            puts "\nFile:\t\t\t#{key}"
-            puts "Matching string:\t#{value}"
-        end
-
-        puts "\nStatistics:"
-        puts "Input files: #{expanded_files.size}. Files checked: #{files_checked.size}. Errors found: #{attributes_dict.size}."
-        exit 1
-    end
+    get_attributes_errors()
 
 end
-'''
