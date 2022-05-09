@@ -2,6 +2,8 @@
 
 require 'find'
 
+# TODO solve double reporting of unresolved attributes in assemblies + modules
+
 
 # sort arguments
 def return_expanded_files(input_files, pattern)
@@ -65,12 +67,12 @@ def get_hyperlink_errors()
 
     if hyperlinks_dict
         hyperlinks_dict.each do|key,value|
-            puts "\nFile:\t\t\t#{key}"
-            puts"Start of the block:\t#{value}"
+            puts "\nFile path:\t\t#{key}"
+            puts"Block starts on line:\t#{value}"
         end
 
         puts "\nStatistics:"
-        puts "Input files: #{@expanded_files.size}. Errors found: #{hyperlinks_dict.size}. Files checked: #{files_checked.size}."
+        puts "Input files: #{@expanded_files.size}. Files checked: #{files_checked.size}. Errors found: #{hyperlinks_dict.size}."
         exit 1
     end
 end
@@ -84,7 +86,7 @@ def get_attributes_errors()
     @expanded_files.each do |file|
         Asciidoctor::LoggerManager.logger.level = :fatal
         doc = Asciidoctor.convert_file file, safe: :safe, catalog_assets: true, sourcemap: true
-        doc.find_by(context: :document).each do |a|
+        doc.find_by(context: :section).each do |a|
             unless files_checked.include?(a.file)
                 files_checked << a.file
             end
@@ -93,12 +95,12 @@ def get_attributes_errors()
 
             if unresolved_attribute
                 if attributes_dict.key?(a.file)
-                    if not unresolved_attribute.nil? || unresolved_attribute.empty?
-                        attributes_dict[a.file] += unresolved_attribute.compact
+                    if not unresolved_attribute.empty?
+                        attributes_dict[a.file] += unresolved_attribute
                     end
                 else
-                    if not unresolved_attribute.nil? || unresolved_attribute.empty?
-                        attributes_dict[a.file] = unresolved_attribute.compact
+                    if not unresolved_attribute.empty?
+                        attributes_dict[a.file] = unresolved_attribute
                     end
                 end
             end
@@ -107,13 +109,64 @@ def get_attributes_errors()
 
     if attributes_dict
         attributes_dict.each do|key,value|
-            puts "\nFile:\t\t\t#{key}"
-            puts "Matching string:\t#{value.map { |list| list.select { |item| not item.nil? } }}"
+            puts "\nFile path:\t\t#{key}"
+            puts "Unresolved attributes:\t#{value.map { |list| list.select { |item| not item.nil? } }}"
+            puts "\nNOTE: unresolved attributes are reported at both assembly and module level."
         end
 
         puts "\nStatistics:"
         puts "Input files: #{@expanded_files.size}. Files checked: #{files_checked.size}. Errors found: #{attributes_dict.size}."
         exit 1
+    end
+
+end
+
+# not done yet
+def return_broken_links()
+    files_checked = []
+    links_dict = {}
+
+    @expanded_files.each do |file|
+        Asciidoctor::LoggerManager.logger.level = :fatal
+        doc = Asciidoctor.convert_file file, safe: :safe, catalog_assets: true, sourcemap: true
+        doc.find_by(context: :paragraph).each do |l|
+            unless files_checked.include?(l.file)
+                files_checked << l.file
+            end
+
+            links = l.content.scan(Asciidoctor::InlineLinkRx)
+
+            if links
+                if links_dict.key?(l.file)
+                    if not links.empty?
+                        links_dict[l.file] += links
+                    end
+                else
+                    if not links.empty?
+                        links_dict[l.file] = links
+                    end
+                end
+            end
+        end
+    end
+    links_dict.each do |key,value|
+        value.each do |v|
+
+            links = value.map { |list| list.select { |item| not item.nil? } }
+            for link in links
+                begin
+                    url = URI.parse(link)
+                    req =  Net::HTTP.new(url.host, url.port)
+                    res = req.request_head(url.path)
+
+                    if re.code != "200"
+                        puts "File: #{key}"
+                        puts "URL: #{link}"
+                        puts "Code: #{res.code}"
+                    end
+                end
+            end
+        end
     end
 
 end

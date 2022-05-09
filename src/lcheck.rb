@@ -27,6 +27,15 @@ opt = OptionParser.new do |opts|
         exit 0
     end
 
+    options[:l] = false
+    opts.on('-l', "Check broken links.") do |l|
+        if ARGV.empty?
+            puts "#{File.basename( ($0), ".*" )}: No argumets provided."
+            puts opts
+        end
+        options[:l] = true
+    end
+
     options[:a] = false
     opts.on("-a", "Check for unresolved attributes.") do |a|
         if ARGV.empty?
@@ -93,14 +102,16 @@ return_expanded_files(ARGV, pattern)
 # if only master.adocs are checked the output is individual .adoc files containing the match
 if options[:s]
     puts "\nChecking #{ARGV} for hyperlinks in literal blocks."
-
     get_hyperlink_errors()
 end
 
-
+# check for unresolved attributes
 if options[:a]
     puts "\nChecking #{ARGV} for unresolved attributes."
-
     get_attributes_errors()
+end
 
+if options[:l]
+    puts "\nChecking #{ARGV} for broken links."
+    return_broken_links()
 end
