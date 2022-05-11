@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'find'
+require 'faraday'
 
 
 module Regex
@@ -140,18 +141,21 @@ end
 def return_broken_links()
     files_checked = []
     links_dict = {}
+    broken_links = []
 
     @expanded_files.each do |file|
         Asciidoctor::LoggerManager.logger.level = :fatal
         doc = Asciidoctor.convert_file file, safe: :safe, catalog_assets: true, sourcemap: true
         doc.find_by(context: :paragraph).each do |l|
-            unless files_checked.include?(l.file)
-                files_checked << l.file
+            realpath = File.realpath(l.file)
+
+            unless files_checked.include?(realpath)
+                files_checked << realpath
             end
 
             #links = l.content.scan(Asciidoctor::InlineLinkRx)
 
-            links = l.content.scan(Regex::CustomRx)
+            links = l.content.scan(/(?<=href\=")[http^\s]*(?=">)|(?<=href\=")[^\s]*(?=" class="bare")/)
 
             if links
                 if links_dict.key?(l.file)
@@ -166,23 +170,39 @@ def return_broken_links()
             end
         end
     end
+
     links_dict.each do |key,value|
-        value.each do |v|
+        for link in value do
 
-            link = value.map { |list| list.select { |item| not item.nil? } }
-            puts link
-            '''begin
-                url = URI.parse(link)
-                req =  Net::HTTP.new(url.host, url.port)
-                res = req.request_head(url.path)
-
-                if re.code != "200"
-                    puts "File: #{key}"
-                    puts "URL: #{link}"
-                    puts "Code: #{res.code}"
+            begin
+                if link.include? "example"
+                    next
                 end
-            end'''
+                response = Faraday.head link
+                if response.status != 200
+
+                    unless broken_links.include?(link)
+                        broken_links << broken_links
+                    end
+
+                    puts "\nFile: #{key}"
+                    puts "Link: #{link}"
+                    puts "Response code: #{response.status}"
+                end
+            rescue
+
+                if Faraday::ConnectionFailed
+                    puts "\nFile: #{key}"
+                    puts "Link: #{link}"
+                    puts "Response code: Connection failed"
+                end
+            end
         end
+
     end
+
+    puts "\nStatistics:"
+    puts "Input files: #{@expanded_files.size}. Files checked: #{files_checked.size}. Errors found: #{broken_links.size}."
+    exit 1
 
 end
