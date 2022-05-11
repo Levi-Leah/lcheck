@@ -2,6 +2,13 @@
 
 require 'find'
 
+
+module Regex
+    CG_BLANK = '\p{Blank}'
+    CC_ALL = '.'
+    CustomRx = %r((^|link:|#{CG_BLANK}|&lt;|[>\(\)\[\];"'])(\\?(?:https?|file|ftp|irc)://[^\s\[\]<]*([^\s.,\[\]<]))(?:\[(|#{CC_ALL}*?[^\\])\])?)m
+end
+
 # TODO solve double reporting of unresolved attributes in assemblies + modules
 
 
@@ -46,20 +53,22 @@ def get_hyperlink_errors()
         doc = Asciidoctor.convert_file file, safe: :safe, catalog_assets: true, sourcemap: true
 
         doc.find_by(context: :literal).each do |l|
-            unless files_checked.include?(l.file)
-                files_checked << l.file
+            realpath = File.realpath(l.file)
+
+            unless files_checked.include?(realpath)
+                files_checked << realpath
             end
             # if script is running on files with unresolved conditionals
-            # it might resilt in literal blocks with no content
+            # it might result in literal blocks with no content
             # hence next
             if l.content.nil?
                 next
             end
             if l.content.match('<a href=')
-                if hyperlinks_dict.key?(l.file)
-                    hyperlinks_dict[l.file] += [l.lineno]
+                if hyperlinks_dict.key?(realpath)
+                    hyperlinks_dict[realpath] += [l.lineno]
                 else
-                    hyperlinks_dict[l.file] = [l.lineno]
+                    hyperlinks_dict[realpath] = [l.lineno]
                 end
             end
         end
@@ -67,6 +76,7 @@ def get_hyperlink_errors()
 
     if hyperlinks_dict
         hyperlinks_dict.each do|key,value|
+            value = value & value
             puts "\nFile path:\t\t#{key}"
             puts"Block starts on line:\t#{value}"
         end
@@ -87,20 +97,23 @@ def get_attributes_errors()
         Asciidoctor::LoggerManager.logger.level = :fatal
         doc = Asciidoctor.convert_file file, safe: :safe, catalog_assets: true, sourcemap: true
         doc.find_by(context: :section).each do |a|
-            unless files_checked.include?(a.file)
-                files_checked << a.file
+
+            realpath = File.realpath(a.file)
+
+            unless files_checked.include?(realpath)
+                files_checked << realpath
             end
 
             unresolved_attribute = a.content.scan(Asciidoctor::AttributeReferenceRx)
 
             if unresolved_attribute
-                if attributes_dict.key?(a.file)
+                if attributes_dict.key?(realpath)
                     if not unresolved_attribute.empty?
-                        attributes_dict[a.file] += unresolved_attribute
+                        attributes_dict[realpath] += unresolved_attribute
                     end
                 else
                     if not unresolved_attribute.empty?
-                        attributes_dict[a.file] = unresolved_attribute
+                        attributes_dict[realpath] = unresolved_attribute
                     end
                 end
             end
@@ -109,8 +122,10 @@ def get_attributes_errors()
 
     if attributes_dict
         attributes_dict.each do|key,value|
+            all_values = value.map { |list| list.select { |item| not item.nil? } }
+            unique_values = all_values & all_values
             puts "\nFile path:\t\t#{key}"
-            puts "Unresolved attributes:\t#{value.map { |list| list.select { |item| not item.nil? } }}"
+            puts "Unresolved attributes:\t#{unique_values}"
             puts "\nNOTE: unresolved attributes are reported at both assembly and module level."
         end
 
@@ -121,7 +136,7 @@ def get_attributes_errors()
 
 end
 
-# not done yet
+
 def return_broken_links()
     files_checked = []
     links_dict = {}
@@ -134,7 +149,9 @@ def return_broken_links()
                 files_checked << l.file
             end
 
-            links = l.content.scan(Asciidoctor::InlineLinkRx)
+            #links = l.content.scan(Asciidoctor::InlineLinkRx)
+
+            links = l.content.scan(Regex::CustomRx)
 
             if links
                 if links_dict.key?(l.file)
@@ -152,20 +169,19 @@ def return_broken_links()
     links_dict.each do |key,value|
         value.each do |v|
 
-            links = value.map { |list| list.select { |item| not item.nil? } }
-            for link in links
-                begin
-                    url = URI.parse(link)
-                    req =  Net::HTTP.new(url.host, url.port)
-                    res = req.request_head(url.path)
+            link = value.map { |list| list.select { |item| not item.nil? } }
+            puts link
+            '''begin
+                url = URI.parse(link)
+                req =  Net::HTTP.new(url.host, url.port)
+                res = req.request_head(url.path)
 
-                    if re.code != "200"
-                        puts "File: #{key}"
-                        puts "URL: #{link}"
-                        puts "Code: #{res.code}"
-                    end
+                if re.code != "200"
+                    puts "File: #{key}"
+                    puts "URL: #{link}"
+                    puts "Code: #{res.code}"
                 end
-            end
+            end'''
         end
     end
 
