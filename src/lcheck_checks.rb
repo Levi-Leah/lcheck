@@ -2,6 +2,7 @@
 
 require 'find'
 require 'faraday'
+require 'thread'
 
 
 module Regex
@@ -139,10 +140,9 @@ end
 
 
 def return_broken_links()
-    puts "\nreturn_broken_links START"
     files_checked = []
     links_dict = {}
-    broken_links = []
+    broken_links = 0
 
     @expanded_files.each do |file|
         Asciidoctor::LoggerManager.logger.level = :fatal
@@ -172,43 +172,56 @@ def return_broken_links()
         end
     end
 
-    puts "\nlink checking START"
-
-    links_dict.each do |key,value|
-        #puts "\nFILE:#{key}"
-        #puts "\t#{value}"
-        for link in value do
-
-            if link.start_with?( '#', '/', 'tab.') or link.downcase.include?('example') or link.downcase.include?('tools.ietf.org')
-                next
-            end
-
-            encoded_link = CGI.escape(link)
-
-            conn = Faraday.new(url: encoded_link) do |faraday|
-                faraday.response :raise_error # raise Faraday::Error on status code 4xx or 5xx
-            end
-
-            begin
-                conn.get(link)
-            rescue URI::BadURIError
-                puts "\nFile: #{key}"
-                puts "Link: #{link}"
-                puts "Response code: Bad URI"
-            rescue URI::InvalidURIError
-                puts "\nFile: #{key}"
-                puts "Link: #{link}"
-                puts "Response code: Invalid URL"
-            rescue Faraday::Error => e
-                puts "\nFile: #{key}"
-                puts "Link: #{link}"
-                puts "Response code: #{e.response[:status]}"
-            end
-        end
-    end
+    function(links_dict)
 
     puts "\nStatistics:"
     puts "Input files: #{@expanded_files.size}. Files checked: #{files_checked.size}. Errors found: #{broken_links.size}."
     exit 1
+
+end
+
+
+def function(links_dict)
+
+    semaphore = Queue.new
+    10.times { semaphore.push(1) } # Add two concurrency tokens
+
+    threads = []
+    links_dict.each do |key,value|
+        threads << Thread.new do
+            semaphore.pop # Acquire token
+            for link in value do
+
+                if link.start_with?( '#', '/', 'tab.', 'file', 'mailto', 'ftp://') or link.downcase.include?('example') or link.downcase.include?('tools.ietf.org') or link.empty? or link == 'ftp.gnome.org'
+                    next
+                end
+
+                encoded_link = CGI.escape(link)
+
+                conn = Faraday.new(url: encoded_link) do |faraday|
+                    faraday.response :raise_error
+                end
+
+                begin
+                    conn.get(link)
+                rescue URI::BadURIError
+                    puts "\nFile: #{key}"
+                    puts "Link: #{link}"
+                    puts "Response code: Bad URI"
+                rescue URI::InvalidURIError
+                    puts "\nFile: #{key}"
+                    puts "Link: #{link}"
+                    puts "Response code: Invalid URL"
+                rescue Faraday::Error => e
+                    puts "\nFile: #{key}"
+                    puts "Link: #{link}"
+                    puts "Response code: #{e.response[:status]}"
+                end
+            end
+            semaphore.push(1) # Release token
+        end
+    end
+
+    threads.each(&:join)
 
 end
