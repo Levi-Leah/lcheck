@@ -139,6 +139,7 @@ end
 
 
 def return_broken_links()
+    puts "\nreturn_broken_links START"
     files_checked = []
     links_dict = {}
     broken_links = []
@@ -171,40 +172,39 @@ def return_broken_links()
         end
     end
 
+    puts "\nlink checking START"
+
     links_dict.each do |key,value|
         #puts "\nFILE:#{key}"
         #puts "\t#{value}"
         for link in value do
 
-            if link.start_with?( '#', '/', 'tab.') or link.downcase.include?("example")
+            if link.start_with?( '#', '/', 'tab.') or link.downcase.include?('example') or link.downcase.include?('tools.ietf.org')
                 next
             end
 
+            encoded_link = CGI.escape(link)
+
+            conn = Faraday.new(url: encoded_link) do |faraday|
+                faraday.response :raise_error # raise Faraday::Error on status code 4xx or 5xx
+            end
+
             begin
-                if link.include? "example"
-                    next
-                end
-                response = Faraday.head link
-                if response.status != 200
-
-                    unless broken_links.include?(link)
-                        broken_links << broken_links
-                    end
-
-                    puts "\nFile: #{key}"
-                    puts "Link: #{link}"
-                    puts "Response code: #{response.status}"
-                end
-            rescue
-
-                if Faraday::ConnectionFailed
-                    puts "\nFile: #{key}"
-                    puts "Link: #{link}"
-                    puts "Response code: Connection failed"
-                end
+                conn.get(link)
+            rescue URI::BadURIError
+                puts "\nFile: #{key}"
+                puts "Link: #{link}"
+                puts "Response code: Bad URI"
+            rescue URI::InvalidURIError
+                puts "\nFile: #{key}"
+                puts "Link: #{link}"
+                puts "Response code: Invalid URL"
+            rescue Faraday::Error => e
+                puts "\nFile: #{key}"
+                puts "Link: #{link}"
+                puts "Response code: #{e.response[:status]}"
             end
         end
-
     end
 
     puts "\nStatistics:"
