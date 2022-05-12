@@ -155,7 +155,7 @@ def return_broken_links()
 
             #links = l.content.scan(Asciidoctor::InlineLinkRx)
 
-            links = l.content.scan(/(?<=href\=")[http^\s]*(?=">)|(?<=href\=")[^\s]*(?=" class="bare")/)
+            links = l.content.scan(/(?<=href\=")[^\s]*(?=">)|(?<=href\=")[^\s]*(?=" class="bare")/)
 
             if links
                 if links_dict.key?(l.file)
@@ -172,7 +172,13 @@ def return_broken_links()
     end
 
     links_dict.each do |key,value|
+        #puts "\nFILE:#{key}"
+        #puts "\t#{value}"
         for link in value do
+
+            if link.start_with?( '#', '/', 'tab.') or link.downcase.include?("example")
+                next
+            end
 
             begin
                 if link.include? "example"
