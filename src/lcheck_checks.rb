@@ -142,7 +142,6 @@ end
 def return_broken_links()
     files_checked = []
     links_dict = {}
-    broken_links = 0
 
     @expanded_files.each do |file|
         Asciidoctor::LoggerManager.logger.level = :fatal
@@ -172,16 +171,17 @@ def return_broken_links()
         end
     end
 
-    function(links_dict)
+    broken_links = function(links_dict)
 
     puts "\nStatistics:"
-    puts "Input files: #{@expanded_files.size}. Files checked: #{files_checked.size}. Errors found: #{broken_links.size}."
+    puts "Input files: #{@expanded_files.size}. Files checked: #{files_checked.size}. Errors found: #{broken_links}."
     exit 1
 
 end
 
 
 def function(links_dict)
+    broken_links = 0
 
     semaphore = Queue.new
     10.times { semaphore.push(1) } # Add two concurrency tokens
@@ -205,14 +205,17 @@ def function(links_dict)
                 begin
                     conn.get(link)
                 rescue URI::BadURIError
+                    broken_links += 1
                     puts "\nFile: #{key}"
                     puts "Link: #{link}"
                     puts "Response code: Bad URI"
                 rescue URI::InvalidURIError
+                    broken_links += 1
                     puts "\nFile: #{key}"
                     puts "Link: #{link}"
                     puts "Response code: Invalid URL"
                 rescue Faraday::Error => e
+                    broken_links += 1
                     puts "\nFile: #{key}"
                     puts "Link: #{link}"
                     puts "Response code: #{e.response[:status]}"
@@ -224,4 +227,5 @@ def function(links_dict)
 
     threads.each(&:join)
 
+    return broken_links
 end
