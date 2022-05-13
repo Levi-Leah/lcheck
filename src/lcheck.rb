@@ -7,17 +7,19 @@ require 'find'
 
 require_relative 'lcheck_checks'
 
+script_name = File.basename( ($0), ".*" )
+
 # TODO exit codes
 # TODO absolute paths so it doesn't loop through symlinks?
 # TODO output in relative paths
 
 ARGV << '-h' if ARGV.empty?
-msg = "-m option must be used with one of the Standalone options: " + "-s, -a"
+msg = "--master and --index options must be used with one of the Standalone options: --hyperlinks, --attributes\n\n"
 
  options = {}
 # configuring the option parser
 opt = OptionParser.new do |opts|
-    opts.banner = "\n#{File.basename( ($0), ".*" )}(1)".upcase + "\n\nNAME".bold + "\n\t#{File.basename( ($0), ".*" )} - checks links in AsciiDoc source files." + "\n\nSYNOPSIS".bold + "\n\t#{File.basename( ($0), ".*" )} [OPTION]... FILE..." + "\n\nOPTIONS".bold
+    opts.banner = "\n#{script_name}(1)".upcase + "\n\nNAME".bold + "\n\t#{script_name} - checks links in AsciiDoc source files." + "\n\nSYNOPSIS".bold + "\n\t#{script_name} [OPTION]... FILE-PATH..." + "\n\nDESCRIPTION".bold + "\n\tThe #{script_name}(1) command checks if asciidoctor files(s) contain broken links, unresolved attributes, hyperlinks in literal blocks, or if the links do not match the provided link pattern.\n\tFILE-PATH can be any file with .adoc extension or a directory containing file(s) with .adoc extension." + "\n\nOPTIONS".bold
 
     opts.separator ""
     opts.separator "   Standalone options:".bold
@@ -28,27 +30,27 @@ opt = OptionParser.new do |opts|
     end
 
     options[:l] = false
-    opts.on('-l', "Check broken links.") do |l|
+    opts.on('-l', "--links", "Check for broken links.") do |l|
         if ARGV.empty?
-            puts "#{File.basename( ($0), ".*" )}: No argumets provided."
+            puts "#{script_name}: No argumets provided."
             puts opts
         end
         options[:l] = true
     end
 
     options[:a] = false
-    opts.on("-a", "Check for unresolved attributes.") do |a|
+    opts.on("-a", "--attributes" ,"Check for unresolved attributes.") do |a|
         if ARGV.empty?
-            puts "#{File.basename( ($0), ".*" )}: No argumets provided."
+            puts "#{script_name}: No argumets provided."
             puts opts
         end
         options[:a] = true
     end
 
     options[:s] = false
-    opts.on("-s", "Check for hyperlinks in literal blocks.") do |s|
+    opts.on("-s", "--hyperlinks", "Check for hyperlinks in literal blocks.") do |s|
         if ARGV.empty?
-            puts "#{File.basename( ($0), ".*" )}: No argumets provided."
+            puts "#{script_name}: No argumets provided."
             puts opts
         end
         options[:s] = true
@@ -58,8 +60,13 @@ opt = OptionParser.new do |opts|
     opts.separator "   Dependently operating options:".bold
 
     options[:m] = false
-    opts.on("-m", "Forces Standalone options to only check master.adoc files.\n\t\t\t\t     #{msg}") do |m|
+    opts.on("-m", "--master", "Forces Standalone options to only check master.adoc files.\n\t\t\t\t     #{msg}") do |m|
         options[:m] = true
+    end
+
+    options[:i] = false
+    opts.on("-i", "--index", "Forces Standalone options to only check index.adoc files.\n\t\t\t\t     #{msg}") do |m|
+        options[:i] = true
     end
 
 end
@@ -68,7 +75,7 @@ end
 begin
     opt.parse! ARGV
 rescue OptionParser::InvalidOption => e
-    STDERR.puts "#{File.basename( ($0), ".*" )}: Invalid option: #{e}"
+    STDERR.puts "#{script_name}: Invalid option: #{e}"
     puts opt.help
     exit 1
 end
@@ -78,7 +85,7 @@ args = opt.parse!
 
 # exit if no options supplied
 if options.values.all?(false)
-    puts "#{File.basename( ($0), ".*" )}: No options provided."
+    puts "#{script_name}: No options provided."
     puts opt.help
     exit 1
 end
@@ -87,15 +94,28 @@ end
 # check if dependent option is used w/o a standalone option
 # determine the pattern to search for
 if options[:m] == true
-    abort "#{msg}" unless options.except(:m).values.any?(true)
-    pattern = ".*master\.adoc$"
+    unless options.except(:m, :i).values.any?(true)
+        puts "#{script_name}: #{msg}"
+        puts opt.help
+        exit 1
+    end
+    pattern = "master\.adoc$"
+elsif options[:i] == true
+    unless options.except(:m, :i).values.any?(true)
+        puts "#{script_name}: #{msg}"
+        puts opt.help
+        exit 1
+    end
+    pattern = "index\.adoc$"
 else
     pattern = ".*\.adoc$"
 end
 
 
 # sort arguments
-return_expanded_files(ARGV, pattern)
+sorted_arguments = return_expanded_files(ARGV, pattern)
+
+abort "#{script_name}: #{ARGV} can not be expanded based on specifiyed options." if sorted_arguments.size == 0
 
 
 # check for hyperlinks in literal blocks
