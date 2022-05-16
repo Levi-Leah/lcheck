@@ -14,7 +14,8 @@ script_name = File.basename( ($0), ".*" )
 # TODO output in relative paths
 
 ARGV << '-h' if ARGV.empty?
-msg = "--master and --index options must be used with one of the Standalone options: --hyperlinks, --attributes\n\n"
+master_index_msg = "--master and --index options must be used with one of the Standalone options: --hyperlinks, --attributes\n\n"
+versus_msg = "--number and --pattern options must be used with the Standalone options: --versus\n\n"
 
  options = {}
 # configuring the option parser
@@ -34,6 +35,7 @@ opt = OptionParser.new do |opts|
         if ARGV.empty?
             puts "#{script_name}: No argumets provided."
             puts opts
+            exit 0
         end
         options[:l] = true
     end
@@ -43,6 +45,7 @@ opt = OptionParser.new do |opts|
         if ARGV.empty?
             puts "#{script_name}: No argumets provided."
             puts opts
+            exit 0
         end
         options[:a] = true
     end
@@ -52,21 +55,37 @@ opt = OptionParser.new do |opts|
         if ARGV.empty?
             puts "#{script_name}: No argumets provided."
             puts opts
+            exit 0
         end
         options[:s] = true
+    end
+
+    options[:vs] = false
+    opts.on("-vs", "--versus", "Check for hyperlinks in literal blocks. --versus option must be used together with Dependently operating options: --pattern") do |vs|
+        if ARGV.empty?
+            puts "#{script_name}: No argumets provided."
+            puts opts
+            exit 0
+        end
+        options[:vs] = true
     end
 
     opts.separator ""
     opts.separator "   Dependently operating options:".bold
 
     options[:m] = false
-    opts.on("-m", "--master", "Forces Standalone options to only check master.adoc files.\n\t\t\t\t     #{msg}") do |m|
+    opts.on("-m", "--master", "Forces Standalone options to only check master.adoc files.\n\t\t\t\t     #{master_index_msg}") do |m|
         options[:m] = true
     end
 
     options[:i] = false
-    opts.on("-i", "--index", "Forces Standalone options to only check index.adoc files.\n\t\t\t\t     #{msg}") do |m|
+    opts.on("-i", "--index", "Forces Standalone options to only check index.adoc files.\n\t\t\t\t     #{master_index_msg}") do |i|
         options[:i] = true
+    end
+
+    options[:p] = []
+    opts.on("-p", "--pattern PATTERN", "Sets product URL pattern to check links against.\n\t\t\t\t     #{versus_msg}\t\t\t\t     Example: Product URL pattern for link " + "https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8".underline + " is " + "red_hat_enterprise_linux/8".bold, String) do |p|
+        options[:p] = p
     end
 
 end
@@ -76,6 +95,14 @@ begin
     opt.parse! ARGV
 rescue OptionParser::InvalidOption => e
     STDERR.puts "#{script_name}: Invalid option: #{e}"
+    puts opt.help
+    exit 1
+rescue OptionParser::InvalidArgument => e
+    STDERR.puts "#{script_name}: Invalid argument: #{e}"
+    puts opt.help
+    exit 1
+rescue OptionParser::MissingArgument => e
+    STDERR.puts "#{script_name}: Invalid argument: #{e}"
     puts opt.help
     exit 1
 end
@@ -93,16 +120,24 @@ end
 
 # check if dependent option is used w/o a standalone option
 # determine the pattern to search for
+if options[:vs] == true
+    unless not options[:p].empty?
+        puts "#{script_name}: #{versus_msg}"
+        puts opt.help
+        exit 1
+    end
+end
+
 if options[:m] == true
     unless options.except(:m, :i).values.any?(true)
-        puts "#{script_name}: #{msg}"
+        puts "#{script_name}: #{master_index_msg}"
         puts opt.help
         exit 1
     end
     pattern = "master\.adoc$"
 elsif options[:i] == true
     unless options.except(:m, :i).values.any?(true)
-        puts "#{script_name}: #{msg}"
+        puts "#{script_name}: #{master_index_msg}"
         puts opt.help
         exit 1
     end
@@ -134,4 +169,12 @@ end
 if options[:l]
     puts "\nChecking #{ARGV} for broken links."
     return_broken_links()
+end
+
+
+if options[:vs]
+    link_pattern = options[:p]
+
+    puts "\nChecking if URLs in #{ARGV} all contain `#{link_pattern}` pattern."
+    check_link_pattern(link_pattern)
 end

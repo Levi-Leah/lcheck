@@ -5,15 +5,6 @@ require 'faraday'
 require 'thread'
 
 
-module Regex
-    CG_BLANK = '\p{Blank}'
-    CC_ALL = '.'
-    CustomRx = %r((^|link:|#{CG_BLANK}|&lt;|[>\(\)\[\];"'])(\\?(?:https?|file|ftp|irc)://[^\s\[\]<]*([^\s.,\[\]<]))(?:\[(|#{CC_ALL}*?[^\\])\])?)m
-end
-
-# TODO solve double reporting of unresolved attributes in assemblies + modules
-
-
 # sort arguments
 def return_expanded_files(input_files, pattern)
     accepted_extension = [".adoc"]
@@ -171,7 +162,7 @@ def return_broken_links()
         end
     end
 
-    broken_links = function(links_dict)
+    broken_links = queue_broken_links(links_dict)
 
     puts "\nStatistics:"
     puts "Input files: #{@expanded_files.size}. Files checked: #{files_checked.size}. Errors found: #{broken_links}."
@@ -180,16 +171,16 @@ def return_broken_links()
 end
 
 
-def function(links_dict)
+def queue_broken_links(links_dict)
     broken_links = 0
 
     semaphore = Queue.new
-    10.times { semaphore.push(1) } # Add two concurrency tokens
+    10.times { semaphore.push(1) }
 
     threads = []
     links_dict.each do |key,value|
         threads << Thread.new do
-            semaphore.pop # Acquire token
+            semaphore.pop
             for link in value do
 
                 if link.start_with?( '#', '/', 'tab.', 'file', 'mailto', 'ftp://') or link.downcase.include?('example') or link.downcase.include?('tools.ietf.org') or link.empty? or link == 'ftp.gnome.org'
@@ -228,4 +219,69 @@ def function(links_dict)
     threads.each(&:join)
 
     return broken_links
+end
+
+
+
+def check_link_pattern(link_pattern)
+    files_checked = []
+    links_dict = {}
+
+    subpattern = link_pattern[/[^\/]+/]
+
+    @expanded_files.each do |file|
+        Asciidoctor::LoggerManager.logger.level = :fatal
+        doc = Asciidoctor.convert_file file, safe: :safe, catalog_assets: true, sourcemap: true
+        doc.find_by(context: :paragraph).each do |l|
+            realpath = File.realpath(l.file)
+
+            unless files_checked.include?(realpath)
+                files_checked << realpath
+            end
+
+
+            links = l.content.scan(/(?<=href\=")[^\s]*(?=">)|(?<=href\=")[^\s]*(?=" class="bare")/)
+
+
+            if links
+                if links_dict.key?(l.file)
+                    if not links.empty?
+                        links_dict[l.file] += links
+                    end
+                else
+                    if not links.empty?
+                        links_dict[l.file] = links
+                    end
+                end
+            end
+        end
+    end
+
+    wrong_links_dict = {}
+    wrong_pattern_links_count = 0
+
+    links_dict.each do |key,value|
+        for link in value
+            if link.include?(subpattern) and not link.include?(link_pattern)
+                if wrong_links_dict.key?(key)
+                    wrong_pattern_links_count +=1
+                    wrong_links_dict[key] += link
+                else
+                    wrong_pattern_links_count +=1
+                    wrong_links_dict[key] = link
+                end
+            end
+        end
+    end
+
+    if wrong_links_dict
+        wrong_links_dict.each do|key,value|
+            puts "\nFile path:\t\t#{key}"
+            puts "Wrong pattern link:\t#{value}"
+        end
+    end
+
+    puts "\nStatistics:"
+    puts "Input files: #{@expanded_files.size}. Files checked: #{files_checked.size}. Errors found: #{wrong_pattern_links_count}."
+    exit 1
 end
