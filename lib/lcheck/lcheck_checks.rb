@@ -5,7 +5,7 @@ require 'faraday'
 require 'thread'
 
 
-# sort arguments
+# expands argument list and returns a list of files to be checked
 def return_expanded_files(input_files, pattern)
     accepted_extension = [".adoc"]
     @expanded_files = []
@@ -148,14 +148,15 @@ def return_broken_links()
 
             links = l.content.scan(/(?<=href\=")[^\s]*(?=">)|(?<=href\=")[^\s]*(?=" class="bare")/)
 
-            if links
-                if links_dict.key?(l.file)
-                    if not links.empty?
-                        links_dict[l.file] += links
-                    end
-                else
-                    if not links.empty?
-                        links_dict[l.file] = links
+            if not links.empty?
+                links.each do |link|
+                    next if link.start_with?( '#', '/', 'tab.', 'file', 'mailto', 'ftp://') or link.downcase.include?('example') or link.downcase.include?('tools.ietf.org') or link.empty? or link == 'ftp.gnome.org'
+                    if not links_dict.key?(link)
+                        links_dict[link] = [l.file]
+                    else
+                        if not links_dict[link].include?(l.file)
+                            links_dict[link].push(l.file)
+                        end
                     end
                 end
             end
@@ -178,39 +179,34 @@ def queue_broken_links(links_dict)
     10.times { semaphore.push(1) }
 
     threads = []
-    links_dict.each do |key,value|
+
+    links_dict.each do |link,files|
         threads << Thread.new do
             semaphore.pop
-            for link in value do
 
-                if link.start_with?( '#', '/', 'tab.', 'file', 'mailto', 'ftp://') or link.downcase.include?('example') or link.downcase.include?('tools.ietf.org') or link.empty? or link == 'ftp.gnome.org'
-                    next
-                end
+            encoded_link = CGI.escape(link)
 
-                encoded_link = CGI.escape(link)
+            conn = Faraday.new(url: encoded_link) do |faraday|
+                faraday.response :raise_error
+            end
 
-                conn = Faraday.new(url: encoded_link) do |faraday|
-                    faraday.response :raise_error
-                end
-
-                begin
-                    conn.get(link)
-                rescue URI::BadURIError
-                    broken_links += 1
-                    puts "\nFile: #{key}"
-                    puts "Link: #{link}"
-                    puts "Response code: Bad URI"
-                rescue URI::InvalidURIError
-                    broken_links += 1
-                    puts "\nFile: #{key}"
-                    puts "Link: #{link}"
-                    puts "Response code: Invalid URL"
-                rescue Faraday::Error => e
-                    broken_links += 1
-                    puts "\nFile: #{key}"
-                    puts "Link: #{link}"
-                    puts "Response code: #{e.response[:status]}"
-                end
+            begin
+                conn.get(link)
+            rescue URI::BadURIError
+                broken_links += 1
+                puts "\nFile: #{files}"
+                puts "Link: #{link}"
+                puts "Response code: Bad URI"
+            rescue URI::InvalidURIError
+                broken_links += 1
+                puts "\nFile: #{files}"
+                puts "Link: #{link}"
+                puts "Response code: Invalid URL"
+            rescue Faraday::Error => e
+                broken_links += 1
+                puts "\nFile: #{files}"
+                puts "Link: #{link}"
+                puts "Response code: #{e.response[:status]}"
             end
             semaphore.push(1) # Release token
         end
