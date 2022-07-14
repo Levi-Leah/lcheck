@@ -131,6 +131,11 @@ end
 
 
 def return_broken_links()
+    #Parses the file for links; excludes pseudo links
+        #e.g. xrefs
+    #Creates a hash with links as keys and file paths as values
+        #e.g. hash = {'www.example.com'=>['path/to/file1.adoc', 'path/to/file2.adoc']}
+    #Runs link checker and prints the results.
     files_checked = []
     links_dict = {}
 
@@ -143,8 +148,6 @@ def return_broken_links()
             unless files_checked.include?(realpath)
                 files_checked << realpath
             end
-
-            #links = l.content.scan(Asciidoctor::InlineLinkRx)
 
             links = l.content.scan(/(?<=href\=")[^\s]*(?=">)|(?<=href\=")[^\s]*(?=" class="bare")/)
 
@@ -173,6 +176,11 @@ end
 
 
 def queue_broken_links(links_dict)
+    # takes in the link: path hash
+        # #e.g. hash = {'www.example.com'=>['path/to/file1.adoc', 'path/to/file2.adoc']}
+    # Runs link check on the hash keys
+    # Returns the list of broken links (for statistics)
+    # Handles exceptions
     broken_links = 0
 
     semaphore = Queue.new
