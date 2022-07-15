@@ -5,8 +5,9 @@ require 'faraday'
 require 'thread'
 
 
-# expands argument list and returns a list of files to be checked
 def return_expanded_files(input_files, pattern)
+    # takes in the user input
+    # expands user input and returns a list of files to be checked
     accepted_extension = [".adoc"]
     @expanded_files = []
 
@@ -119,9 +120,9 @@ def get_attributes_errors()
             unique_values = all_values & all_values
             puts "\nFile path:\t\t#{key}"
             puts "Unresolved attributes:\t#{unique_values}"
-            puts "\nNOTE: unresolved attributes are reported at both assembly and module level."
         end
 
+        puts "\nNOTE: unresolved attributes are reported at both assembly and module level.\n"
         puts "\nStatistics:"
         puts "Input files: #{@expanded_files.size}. Files checked: #{files_checked.size}. Errors found: #{attributes_dict.size}."
         exit 1
@@ -202,17 +203,26 @@ def queue_broken_links(links_dict)
                 conn.get(link)
             rescue URI::BadURIError
                 broken_links += 1
-                puts "\nFile: #{files}"
+                puts "\nFiles: #{files.count}"
+                files.each do |file|
+                    puts file
+                end
                 puts "Link: #{link}"
                 puts "Response code: Bad URI"
             rescue URI::InvalidURIError
                 broken_links += 1
-                puts "\nFile: #{files}"
+                puts "\nFiles: #{files.count}"
+                files.each do |file|
+                    puts file
+                end
                 puts "Link: #{link}"
                 puts "Response code: Invalid URL"
             rescue Faraday::Error => e
                 broken_links += 1
-                puts "\nFile: #{files}"
+                puts "\nFiles: #{files.count}"
+                files.each do |file|
+                    puts "#{file}"
+                end
                 puts "Link: #{link}"
                 puts "Response code: #{e.response[:status]}"
             end
